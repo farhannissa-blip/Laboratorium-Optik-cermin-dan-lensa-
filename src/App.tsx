@@ -61,6 +61,8 @@ export default function App() {
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
   const [guidedTopic, setGuidedTopic] = useState<LabModule | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isImmersiveFallback, setIsImmersiveFallback] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentObjectUrlRef = useRef<string | null>(null);
@@ -95,20 +97,99 @@ export default function App() {
     };
   }, []);
 
-  // Keyboard shortcut: 'H' collapses/expands the bottom control dock
+  // Sync native browser Fullscreen state (including Esc key exit)
+  useEffect(() => {
+    const syncFs = () => {
+      const doc = document as Document & {
+        webkitFullscreenElement?: Element | null;
+      };
+      const active = Boolean(
+        document.fullscreenElement || doc.webkitFullscreenElement
+      );
+      setIsFullscreen(active);
+      if (active) {
+        setIsImmersiveFallback(false);
+      }
+    };
+
+    document.addEventListener('fullscreenchange', syncFs);
+    document.addEventListener('webkitfullscreenchange', syncFs);
+    return () => {
+      document.removeEventListener('fullscreenchange', syncFs);
+      document.removeEventListener('webkitfullscreenchange', syncFs);
+    };
+  }, []);
+
+  const handleToggleFullscreen = useCallback(async () => {
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null;
+      webkitExitFullscreen?: () => Promise<void> | void;
+    };
+    const root = document.documentElement as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void> | void;
+    };
+
+    const nativeActive = Boolean(
+      document.fullscreenElement || doc.webkitFullscreenElement
+    );
+
+    if (nativeActive) {
+      try {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (doc.webkitExitFullscreen) {
+          await doc.webkitExitFullscreen();
+        }
+      } catch {
+        setIsFullscreen(false);
+      }
+      return;
+    }
+
+    if (isImmersiveFallback) {
+      setIsImmersiveFallback(false);
+      setDockCollapsed(false);
+      return;
+    }
+
+    try {
+      if (root.requestFullscreen) {
+        await root.requestFullscreen();
+        return;
+      }
+      if (root.webkitRequestFullscreen) {
+        await root.webkitRequestFullscreen();
+        return;
+      }
+    } catch {
+      // Fall through to clean viewport immersive mode if Fullscreen API is blocked
+    }
+
+    setIsImmersiveFallback(true);
+    setDockCollapsed(true);
+  }, [isImmersiveFallback]);
+
+  // Keyboard shortcuts: 'H' toggles dock, 'F' toggles full screen, 'Escape' closes modals/immersive mode
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.key === 'h' || e.key === 'H') {
         setDockCollapsed((c) => !c);
-      } else if (e.key === 'Escape' && narrationOpen) {
-        setNarrationOpen(false);
+      } else if (e.key === 'f' || e.key === 'F') {
+        void handleToggleFullscreen();
+      } else if (e.key === 'Escape') {
+        if (narrationOpen) {
+          setNarrationOpen(false);
+        } else if (isImmersiveFallback) {
+          setIsImmersiveFallback(false);
+          setDockCollapsed(false);
+        }
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [narrationOpen]);
+  }, [handleToggleFullscreen, isImmersiveFallback, narrationOpen]);
 
   const stopAllAudio = useCallback((clearGuided = true) => {
     if (audioRef.current) {
@@ -518,24 +599,38 @@ export default function App() {
       />
 
       {/* Top Navigation & Friendly Live Optical Summary */}
-      <TopBar
-        activeModule={activeModule}
-        onSelectModule={handleSelectModule}
-        onOpenNarration={() => setNarrationOpen(true)}
-        uploadedCount={
-          NARRATION_SEGMENTS.filter(
-            (s) => Boolean(voiceovers[s.id] || s.defaultAudioUrl)
-          ).length
-        }
-        totalSegments={NARRATION_SEGMENTS.length}
-        mirrorState={mirrorState}
-        mirrorResult={mirrorResult}
-        eyeState={eyeState}
-        eyeResult={eyeResult}
-        guidedTopic={guidedTopic}
-        isGuidedPlaying={Boolean(guidedTopic && (isPlaying || isTtsSpeaking))}
-        onToggleGuidedTopic={handleStartGuidedTopic}
-      />
+      {isImmersiveFallback ? (
+        <div className="fixed top-3 right-3 z-30">
+          <button
+            type="button"
+            onClick={() => void handleToggleFullscreen()}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-white/[0.96] text-slate-900 border border-slate-300 shadow-md hover:bg-slate-100 transition-colors"
+          >
+            <span>Keluar Layar Penuh</span>
+          </button>
+        </div>
+      ) : (
+        <TopBar
+          activeModule={activeModule}
+          onSelectModule={handleSelectModule}
+          onOpenNarration={() => setNarrationOpen(true)}
+          uploadedCount={
+            NARRATION_SEGMENTS.filter(
+              (s) => Boolean(voiceovers[s.id] || s.defaultAudioUrl)
+            ).length
+          }
+          totalSegments={NARRATION_SEGMENTS.length}
+          mirrorState={mirrorState}
+          mirrorResult={mirrorResult}
+          eyeState={eyeState}
+          eyeResult={eyeResult}
+          guidedTopic={guidedTopic}
+          isGuidedPlaying={Boolean(guidedTopic && (isPlaying || isTtsSpeaking))}
+          onToggleGuidedTopic={handleStartGuidedTopic}
+          isFullscreen={isFullscreen || isImmersiveFallback}
+          onToggleFullscreen={() => void handleToggleFullscreen()}
+        />
+      )}
 
       {/* Non-obstructive Subtitle Caption Bar when audio narration or guided animation is playing */}
       {(isPlaying || isTtsSpeaking) && !narrationOpen && (

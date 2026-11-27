@@ -1,4 +1,4 @@
-import { Headphones, Play, Square } from 'lucide-react';
+import { Headphones, Maximize2, Minimize2, Play, Square } from 'lucide-react';
 import {
   EyeLabState,
   EyeOpticsResult,
@@ -20,6 +20,8 @@ interface TopBarProps {
   guidedTopic: LabModule | null;
   isGuidedPlaying: boolean;
   onToggleGuidedTopic: (topic: LabModule) => void;
+  isFullscreen: boolean;
+  onToggleFullscreen: () => void;
 }
 
 export function TopBar({
@@ -35,6 +37,8 @@ export function TopBar({
   guidedTopic,
   isGuidedPlaying,
   onToggleGuidedTopic,
+  isFullscreen,
+  onToggleFullscreen,
 }: TopBarProps) {
   const conditionTitle =
     eyeState.condition === 'myopia'
@@ -106,17 +110,41 @@ export function TopBar({
           </button>
         </nav>
 
-        {/* Zone 3: Single primary action */}
-        <div className="flex items-center shrink-0">
+        {/* Zone 3: Voiceover studio & Full Screen toggle */}
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={onOpenNarration}
-            className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 text-xs font-semibold rounded-lg bg-sky-600 text-white hover:bg-sky-700 transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-sky-600"
+            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-xs font-semibold rounded-lg bg-sky-600 text-white hover:bg-sky-700 transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-sky-600"
           >
             <Headphones className="w-3.5 h-3.5" aria-hidden="true" />
             <span>
               Naskah &amp; Voiceover ({uploadedCount}/{totalSegments})
             </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onToggleFullscreen}
+            title={isFullscreen ? 'Keluar dari Full Screen (F)' : 'Tampilkan Full Screen (F)'}
+            aria-label={isFullscreen ? 'Keluar dari Full Screen' : 'Tampilkan Full Screen'}
+            className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs font-semibold rounded-lg border transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-sky-600 ${
+              isFullscreen
+                ? 'bg-slate-900 border-slate-900 text-white hover:bg-slate-800'
+                : 'bg-slate-100 border-slate-300 text-slate-800 hover:bg-slate-200'
+            }`}
+          >
+            {isFullscreen ? (
+              <>
+                <Minimize2 className="w-3.5 h-3.5" aria-hidden="true" />
+                <span className="hidden sm:inline">Keluar Full Screen</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 className="w-3.5 h-3.5" aria-hidden="true" />
+                <span className="hidden sm:inline">Full Screen</span>
+              </>
+            )}
           </button>
         </div>
       </header>
