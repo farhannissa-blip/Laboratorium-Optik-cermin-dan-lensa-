@@ -588,7 +588,7 @@ export default function App() {
     customScripts[currentSegment.id] ?? currentSegment.defaultScript;
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-[#1B2738] text-slate-900">
+    <main className="relative w-screen h-screen overflow-hidden bg-slate-200 text-slate-900">
       {/* Full-bleed 3D Optical Simulation Viewport */}
       <OpticsCanvas
         activeModule={activeModule}

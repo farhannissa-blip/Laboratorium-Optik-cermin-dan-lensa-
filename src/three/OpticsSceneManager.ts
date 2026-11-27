@@ -28,13 +28,13 @@ import {
   createOpticalSubjectModel,
   createProjectionScreenAssembly,
   createRailCarriage,
-  createScienceClassroomEnvironment,
   EyeAssemblyRefs,
   OPTICAL_AXIS_Y,
   RAIL_TOP_Y,
   renderRetinaProjectionCanvas,
   updateLabelSpriteText,
 } from './proceduralAssets';
+import { createScienceClassroomEnvironment } from './classroomEnvironment';
 
 interface PhotonSegment {
   start: THREE.Vector3;
@@ -239,11 +239,11 @@ export class OpticsSceneManager {
     );
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
 
-    // 2. Indoor Science Classroom Backdrop, Matching Subtle Fog & Studio RoomEnvironment
+    // 2. Soft Light-Gray Indoor Science Lab Backdrop, Subtle Depth Fog & RoomEnvironment
     this.scene = new THREE.Scene();
-    const bgHex = 0x1b2738;
+    const bgHex = 0xd1d8e0;
     this.scene.background = new THREE.Color(bgHex);
-    this.scene.fog = new THREE.FogExp2(bgHex, 0.014);
+    this.scene.fog = new THREE.FogExp2(bgHex, 0.0042);
 
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     this.scene.environment = pmrem.fromScene(
@@ -253,40 +253,41 @@ export class OpticsSceneManager {
     this.scene.environmentIntensity = 0.72;
     pmrem.dispose();
 
-    // 3. Camera & OrbitControls (framed nicely inside the science classroom looking over the lab desk)
-    this.camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+    // 3. Camera & OrbitControls (generous zoom-out range so full Mirror & Eye workbench fits on any screen)
+    this.camera = new THREE.PerspectiveCamera(44, width / height, 0.1, 140);
     this.camera.position.set(-2.5, 5.2, 13.8);
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = !this.isSoftwareGl;
     this.controls.dampingFactor = 0.08;
     this.controls.maxPolarAngle = Math.PI * 0.49;
-    this.controls.minDistance = 4.2;
-    this.controls.maxDistance = 19.5;
+    this.controls.minDistance = 3.6;
+    this.controls.maxDistance = 36.0;
+    this.controls.zoomSpeed = 1.15;
     this.controls.target.set(-2.2, 2.35, 0);
     this.controls.addEventListener('start', () => {
       this.camTransitionActive = false;
     });
 
-    // 4. Calibrated Indoor Science Room Lighting (lightweight on mobile, 3-point on desktop)
+    // 4. Calibrated Bright White Classroom Lighting (warm indoor daylight + cool window fill)
     const hemiLight = new THREE.HemisphereLight(
-      0xa5c8eb,
-      0x3b2c1e,
-      this.isLowPower ? 0.74 : 0.62
+      0xffffff,
+      0x948473,
+      this.isLowPower ? 0.96 : 0.86
     );
     this.scene.add(hemiLight);
 
     const keyLight = new THREE.DirectionalLight(
-      0xffe8cc,
-      this.isLowPower ? 1.88 : 1.55
+      0xfff4e2,
+      this.isLowPower ? 1.48 : 1.32
     );
     keyLight.position.set(5.5, 11.5, 7.5);
     keyLight.castShadow = !this.isLowPower;
     if (!this.isLowPower) {
       keyLight.shadow.mapSize.set(1024, 1024);
       keyLight.shadow.camera.near = 1;
-      keyLight.shadow.camera.far = 32;
-      const d = 12;
+      keyLight.shadow.camera.far = 36;
+      const d = 14;
       keyLight.shadow.camera.left = -d;
       keyLight.shadow.camera.right = d;
       keyLight.shadow.camera.top = d;
@@ -296,14 +297,14 @@ export class OpticsSceneManager {
     }
     this.scene.add(keyLight);
 
-    // Subtle cool indoor window fill from left
-    const windowFill = new THREE.DirectionalLight(0x93c5fd, 0.58);
-    windowFill.position.set(-12, 6.5, -4);
+    // Subtle cool indoor window fill from left windows
+    const windowFill = new THREE.DirectionalLight(0xbae6fd, 0.52);
+    windowFill.position.set(-14, 6.5, -2);
     this.scene.add(windowFill);
 
     // Warm overhead desk pendant point light (desktop only; folded into keyLight on mobile)
     if (!this.isLowPower) {
-      const pendantLight = new THREE.PointLight(0xfff0d4, 1.25, 22, 1.6);
+      const pendantLight = new THREE.PointLight(0xfff0d4, 1.05, 22, 1.6);
       pendantLight.position.set(-1.6, 9.6, 0.5);
       this.scene.add(pendantLight);
     }
