@@ -110,7 +110,7 @@ function createClassroomFloorTexture(maxAnisotropy: number): THREE.CanvasTexture
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(14, 17);
+  tex.repeat.set(14, 18);
   tex.anisotropy = maxAnisotropy;
   tex.needsUpdate = true;
   return tex;
@@ -2053,131 +2053,147 @@ function createStudentDeskAndChairAssembly(variant = 0): THREE.Group {
     roughness: 0.88,
   });
 
-  // === 1. STUDENT DESK (width 3.1, height 3.55, depth 1.75) ===
-  const deskW = 3.1;
-  const deskH = 3.55;
-  const deskD = 1.75;
+  // === 1. PROPORTIONAL STUDENT LAB DESK (5.8 × 4.05 × 3.6 — matched to 4.2-tall main workbench) ===
+  const deskW = 5.8;
+  const deskH = 4.05;
+  const deskD = 3.6;
+  const topT = 0.26;
 
   const desktop = new THREE.Mesh(
-    new THREE.BoxGeometry(deskW, 0.16, deskD),
+    new THREE.BoxGeometry(deskW, topT, deskD),
     oakLightMat
   );
-  desktop.position.set(0, deskH - 0.08, 0);
+  desktop.position.set(0, deskH - topT / 2, 0);
   set.add(desktop);
+
+  // Protective edge trim around tabletop (echoing main workbench construction)
+  const trimFront = new THREE.Mesh(
+    new THREE.BoxGeometry(deskW + 0.08, topT + 0.02, 0.09),
+    oakEdgeMat
+  );
+  trimFront.position.set(0, deskH - topT / 2, deskD / 2 + 0.02);
+  const trimBack = trimFront.clone();
+  trimBack.position.z = -(deskD / 2 + 0.02);
+  set.add(trimFront, trimBack);
 
   // Under-desk book drawer/cubby shelf & front modesty panel
   const cubbyShelf = new THREE.Mesh(
-    new THREE.BoxGeometry(deskW - 0.36, 0.08, deskD - 0.36),
+    new THREE.BoxGeometry(deskW - 0.56, 0.12, deskD - 0.56),
     oakEdgeMat
   );
-  cubbyShelf.position.set(0, deskH - 0.62, 0);
+  cubbyShelf.position.set(0, deskH - 0.78, 0);
   const modesty = new THREE.Mesh(
-    new THREE.BoxGeometry(deskW - 0.3, 1.35, 0.08),
+    new THREE.BoxGeometry(deskW - 0.5, 1.65, 0.12),
     oakEdgeMat
   );
-  modesty.position.set(0, deskH - 0.85, -deskD / 2 + 0.14);
+  modesty.position.set(0, deskH - 1.12, -deskD / 2 + 0.22);
   set.add(cubbyShelf, modesty);
 
-  // 4 Steel Desk Legs + Horizontal Foot Stretchers
-  const dLegGeo = new THREE.BoxGeometry(0.12, deskH - 0.16, 0.12);
-  const lx = deskW / 2 - 0.18;
-  const lz = deskD / 2 - 0.18;
+  // 4 Sturdy Steel Desk Legs + Horizontal Foot Stretchers
+  const legH = deskH - topT;
+  const dLegGeo = new THREE.BoxGeometry(0.24, legH, 0.24);
+  const lx = deskW / 2 - 0.34;
+  const lz = deskD / 2 - 0.32;
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
       const leg = new THREE.Mesh(dLegGeo, steelFrameMat);
-      leg.position.set(sx * lx, (deskH - 0.16) / 2, sz * lz);
+      leg.position.set(sx * lx, legH / 2, sz * lz);
       set.add(leg);
 
-      const cap = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.07, 0.15), footMat);
-      cap.position.set(sx * lx, 0.035, sz * lz);
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.1, 0.28), footMat);
+      cap.position.set(sx * lx, 0.05, sz * lz);
       set.add(cap);
     }
     const sideTie = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.08, deskD - 0.36),
+      new THREE.BoxGeometry(0.14, 0.14, deskD - 0.64),
       steelFrameMat
     );
-    sideTie.position.set(sx * lx, 0.72, 0);
+    sideTie.position.set(sx * lx, 0.85, 0);
     set.add(sideTie);
   }
 
-  // Neat open Grade 5 IPA notebook & colored pen on desk surface
+  // Proportional open Grade 5 IPA notebook & colored pen on desk surface
   const coverColors = [0x0284c7, 0x16a34a, 0xd97706, 0xe11d48];
   const bookCover = new THREE.Mesh(
-    new THREE.BoxGeometry(0.76, 0.05, 0.56),
+    new THREE.BoxGeometry(1.38, 0.08, 1.02),
     new THREE.MeshStandardMaterial({
       color: coverColors[variant % coverColors.length],
       roughness: 0.72,
     })
   );
-  bookCover.position.set(-0.42, deskH + 0.025, 0.08);
+  bookCover.position.set(-0.85, deskH + 0.04, 0.18);
   bookCover.rotation.y = (variant % 2 === 0 ? 1 : -1) * 0.08;
   const pages = new THREE.Mesh(
-    new THREE.BoxGeometry(0.7, 0.055, 0.5),
+    new THREE.BoxGeometry(1.26, 0.09, 0.9),
     new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.85 })
   );
-  pages.position.set(-0.42, deskH + 0.04, 0.08);
+  pages.position.set(-0.85, deskH + 0.065, 0.18);
   pages.rotation.y = bookCover.rotation.y;
   set.add(bookCover, pages);
 
-  // Small blue/yellow plastic lab tray or mini beaker on right side of desk
+  // Proportional colored lab beaker on right side of desk
   const miniBeaker = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.14, 0.14, 0.36, 10),
+    new THREE.CylinderGeometry(0.26, 0.26, 0.68, 12),
     new THREE.MeshStandardMaterial({
       color: coverColors[(variant + 1) % coverColors.length],
       roughness: 0.25,
       transparent: true,
-      opacity: 0.78,
+      opacity: 0.8,
     })
   );
-  miniBeaker.position.set(0.78, deskH + 0.18, -0.15);
+  miniBeaker.position.set(1.42, deskH + 0.34, -0.32);
   set.add(miniBeaker);
 
-  // === 2. MATCHING SCHOOL CHAIR (sitting neatly on +Z side facing -Z chalkboard) ===
+  // === 2. PROPORTIONAL SCHOOL CHAIR (tucked neatly on +Z side facing -Z chalkboard) ===
   const chair = new THREE.Group();
-  chair.position.set(0, 0, 1.18);
-  const seatW = 1.48;
-  const seatD = 1.28;
-  const seatH = 2.08;
+  chair.position.set(0, 0, 2.35);
+  const seatW = 2.7;
+  const seatD = 2.45;
+  const seatH = 2.45;
 
   const seat = new THREE.Mesh(
-    new THREE.BoxGeometry(seatW, 0.13, seatD),
+    new THREE.BoxGeometry(seatW, 0.18, seatD),
     oakLightMat
   );
   seat.position.set(0, seatH, 0);
   chair.add(seat);
 
-  // 4 Steel Chair Legs
-  const cLegGeo = new THREE.BoxGeometry(0.1, seatH, 0.1);
-  const cx = seatW / 2 - 0.14;
-  const cz = seatD / 2 - 0.14;
+  // 4 Sturdy Steel Chair Legs + Rubber Glides
+  const cLegGeo = new THREE.BoxGeometry(0.16, seatH, 0.16);
+  const cx = seatW / 2 - 0.22;
+  const cz = seatD / 2 - 0.22;
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
       const cLeg = new THREE.Mesh(cLegGeo, steelFrameMat);
       cLeg.position.set(sx * cx, seatH / 2, sz * cz);
       chair.add(cLeg);
+
+      const cFoot = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.08, 0.19), footMat);
+      cFoot.position.set(sx * cx, 0.04, sz * cz);
+      chair.add(cFoot);
     }
     // Tall backrest upright tubes rising from rear (+Z) legs
     const upright = new THREE.Mesh(
-      new THREE.BoxGeometry(0.09, 2.32, 0.09),
+      new THREE.BoxGeometry(0.15, 2.72, 0.15),
       steelFrameMat
     );
-    upright.position.set(sx * cx, seatH + 1.12, cz + 0.04);
+    upright.position.set(sx * cx, seatH + 1.32, cz + 0.06);
     upright.rotation.x = 0.07;
     chair.add(upright);
   }
 
-  // Ergonomic double wooden backrest slats (clearly visible above tabletop!)
+  // Ergonomic double wooden backrest slats (clearly visible above desktop!)
   const backUpper = new THREE.Mesh(
-    new THREE.BoxGeometry(seatW - 0.06, 0.62, 0.12),
+    new THREE.BoxGeometry(seatW - 0.08, 0.8, 0.16),
     oakLightMat
   );
-  backUpper.position.set(0, seatH + 1.92, cz + 0.11);
+  backUpper.position.set(0, seatH + 2.22, cz + 0.16);
   backUpper.rotation.x = 0.07;
   const backLower = new THREE.Mesh(
-    new THREE.BoxGeometry(seatW - 0.06, 0.36, 0.1),
+    new THREE.BoxGeometry(seatW - 0.08, 0.48, 0.14),
     oakEdgeMat
   );
-  backLower.position.set(0, seatH + 1.15, cz + 0.06);
+  backLower.position.set(0, seatH + 1.32, cz + 0.09);
   backLower.rotation.x = 0.07;
   chair.add(backUpper, backLower);
 
@@ -2309,8 +2325,8 @@ export function createScienceClassroomEnvironment(
   const roomWidth = 40.0; // X spans from -21.5 to +18.5
   const roomCenterX = -1.5;
   const backWallZ = -14.0;
-  const frontWallZ = 35.5; // Spacious depth so full zoom-out stays inside the room
-  const roomDepth = frontWallZ - backWallZ; // 49.5 units deep
+  const frontWallZ = 37.0; // Spacious depth so full zoom-out stays cleanly inside the room
+  const roomDepth = frontWallZ - backWallZ; // 51.0 units deep
   const roomCenterZ = (backWallZ + frontWallZ) / 2;
   const wallHeight = 16.4; // Y from -4.2 to +12.2
   const ceilingY = floorY + wallHeight;
@@ -2349,7 +2365,7 @@ export function createScienceClassroomEnvironment(
   });
   const panelGlowMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   for (const lx of [-10.5, -1.5, 7.5]) {
-    for (const lz of [-8.5, 1.0, 10.5, 20.5]) {
+    for (const lz of [-8.5, 1.5, 11.5, 21.5, 30.5]) {
       const fixture = new THREE.Mesh(
         new THREE.BoxGeometry(4.2, 0.12, 1.15),
         panelFrameMat
@@ -2516,8 +2532,8 @@ export function createScienceClassroomEnvironment(
   backWindow.position.set(-16.0, 5.45, backWallZ + 0.06);
   room.add(backWindow);
 
-  // Three large side laboratory windows along the light-gray left wall
-  for (const wz of [-7.5, -0.5, 6.5]) {
+  // Five large side laboratory windows evenly spaced along the light-gray left wall
+  for (const wz of [-7.5, 0.5, 8.5, 16.5, 24.5]) {
     const sideWin = createLabWindowAssembly(
       5.4,
       5.2,
@@ -2525,7 +2541,7 @@ export function createScienceClassroomEnvironment(
       windowFrameMat,
       woodTrimMat,
       sharedGlassMat,
-      wz === -0.5
+      wz === 0.5 || wz === 16.5
     );
     sideWin.rotation.y = Math.PI / 2;
     sideWin.position.set(leftWallX + 0.06, 5.45, wz);
@@ -2633,10 +2649,11 @@ export function createScienceClassroomEnvironment(
   earPosterRight.position.set(rightWallX - 0.16, 5.2, -4.5);
   room.add(earPosterRight);
 
-  // === 6B. 4 LINED-UP STUDENT DESKS & CHAIRS ALIGNED WITH THE LABORATORY EXIT DOOR ===
-  // All 4 student desks & chairs sit in a neat straight row at z = +8.8, directly in line with the exit door!
-  const exitDoorZ = 8.8;
-  const studentDeskXs = [-11.4, -6.8, -2.2, 2.4];
+  // === 6B. 4 PROPORTIONAL STUDENT DESKS & CHAIRS BACK NEAR THE REAR WALL & ALIGNED WITH EXIT DOOR ===
+  // Positioned further back near the rear wall (frontWallZ = 37.0) with realistic aisle clearance behind chairs,
+  // and cleanly lined up in a straight row aligned with the laboratory exit door on the right wall!
+  const exitDoorZ = 30.8;
+  const studentDeskXs = [-13.5, -6.1, 1.3, 8.7];
   studentDeskXs.forEach((sx, idx) => {
     const deskChairSet = createStudentDeskAndChairAssembly(idx);
     deskChairSet.position.set(sx, floorY, exitDoorZ);
